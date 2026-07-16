@@ -1,0 +1,1508 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: SkillScope – AI-Powered Developer Intelligence Platform API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: users
+    description: User profile operations
+  - name: dashboard
+    description: Dashboard and summary data
+  - name: github
+    description: GitHub analytics
+  - name: coding-profiles
+    description: Competitive programming profiles
+  - name: skills
+    description: AI-detected skills
+  - name: projects
+    description: Repository / project intelligence
+  - name: resumes
+    description: Resume builder
+  - name: interview
+    description: Interview readiness
+  - name: career-coach
+    description: AI career coach chat
+  - name: roadmap
+    description: Learning roadmap
+  - name: gamification
+    description: XP, badges, leaderboard
+  - name: recruiter
+    description: Recruiter search and bookmarks
+  - name: public
+    description: Public developer profiles
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  # ─── Users ───────────────────────────────────────────────────────────────────
+  /users/me:
+    get:
+      operationId: getMe
+      tags: [users]
+      summary: Get current user profile
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: Unauthorized
+    put:
+      operationId: updateMe
+      tags: [users]
+      summary: Update current user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserProfileUpdate"
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  /users/me/sync:
+    post:
+      operationId: syncUser
+      tags: [users]
+      summary: Sync or create user from Clerk session (JIT provisioning)
+      responses:
+        "200":
+          description: Synced user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  # ─── Dashboard ───────────────────────────────────────────────────────────────
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get dashboard overview with all scores and metrics
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/activity-heatmap:
+    get:
+      operationId: getActivityHeatmap
+      tags: [dashboard]
+      summary: Get coding activity heatmap data (daily contributions)
+      responses:
+        "200":
+          description: Activity heatmap
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HeatmapDay"
+
+  /dashboard/progress:
+    get:
+      operationId: getMonthlyProgress
+      tags: [dashboard]
+      summary: Get monthly progress metrics
+      responses:
+        "200":
+          description: Monthly progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MonthlyProgress"
+
+  # ─── GitHub ──────────────────────────────────────────────────────────────────
+  /github/profile:
+    get:
+      operationId: getGithubProfile
+      tags: [github]
+      summary: Get connected GitHub analytics profile
+      responses:
+        "200":
+          description: GitHub profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GithubProfile"
+        "404":
+          description: Not connected
+
+  /github/connect:
+    post:
+      operationId: connectGithub
+      tags: [github]
+      summary: Connect or refresh GitHub profile by username
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GithubConnectInput"
+      responses:
+        "200":
+          description: GitHub profile connected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GithubProfile"
+
+  /github/repos:
+    get:
+      operationId: getGithubRepos
+      tags: [github]
+      summary: Get list of GitHub repositories
+      responses:
+        "200":
+          description: List of repositories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GithubRepo"
+
+  /github/languages:
+    get:
+      operationId: getGithubLanguages
+      tags: [github]
+      summary: Get language distribution across repositories
+      responses:
+        "200":
+          description: Language distribution
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LanguageStat"
+
+  /github/commit-activity:
+    get:
+      operationId: getCommitActivity
+      tags: [github]
+      summary: Get weekly commit activity for the last year
+      responses:
+        "200":
+          description: Commit activity data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WeeklyActivity"
+
+  # ─── Coding Profiles ─────────────────────────────────────────────────────────
+  /coding-profiles:
+    get:
+      operationId: getCodingProfiles
+      tags: [coding-profiles]
+      summary: List all connected competitive programming profiles
+      responses:
+        "200":
+          description: Coding profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CodingProfile"
+    post:
+      operationId: addCodingProfile
+      tags: [coding-profiles]
+      summary: Add a new competitive programming profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CodingProfileInput"
+      responses:
+        "201":
+          description: Profile added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CodingProfile"
+
+  /coding-profiles/{id}:
+    delete:
+      operationId: deleteCodingProfile
+      tags: [coding-profiles]
+      summary: Remove a connected coding profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /coding-profiles/aggregate:
+    get:
+      operationId: getCodingAggregate
+      tags: [coding-profiles]
+      summary: Get aggregated stats across all coding platforms
+      responses:
+        "200":
+          description: Aggregate stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CodingAggregate"
+
+  # ─── Skills ──────────────────────────────────────────────────────────────────
+  /skills:
+    get:
+      operationId: getSkills
+      tags: [skills]
+      summary: Get AI-detected skills with scores and confidence
+      responses:
+        "200":
+          description: Skills list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Skill"
+
+  /skills/analyze:
+    post:
+      operationId: analyzeSkills
+      tags: [skills]
+      summary: Trigger AI skill analysis on connected GitHub repos
+      responses:
+        "200":
+          description: Analysis triggered / completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalysisResult"
+
+  /skills/categories:
+    get:
+      operationId: getSkillCategories
+      tags: [skills]
+      summary: Get skills grouped by category with overall category scores
+      responses:
+        "200":
+          description: Skill categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SkillCategory"
+
+  # ─── Projects ────────────────────────────────────────────────────────────────
+  /projects:
+    get:
+      operationId: getProjects
+      tags: [projects]
+      summary: Get list of analyzed projects
+      responses:
+        "200":
+          description: Projects
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Project"
+
+  /projects/{id}:
+    get:
+      operationId: getProject
+      tags: [projects]
+      summary: Get detailed project intelligence for a repo
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Project detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectDetail"
+        "404":
+          description: Not found
+
+  # ─── Resumes ─────────────────────────────────────────────────────────────────
+  /resumes:
+    get:
+      operationId: getResumes
+      tags: [resumes]
+      summary: List all resumes
+      responses:
+        "200":
+          description: Resumes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Resume"
+    post:
+      operationId: createResume
+      tags: [resumes]
+      summary: Create a new resume
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResumeInput"
+      responses:
+        "201":
+          description: Resume created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Resume"
+
+  /resumes/{id}:
+    get:
+      operationId: getResume
+      tags: [resumes]
+      summary: Get a specific resume
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Resume
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Resume"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateResume
+      tags: [resumes]
+      summary: Update a resume
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResumeUpdate"
+      responses:
+        "200":
+          description: Updated resume
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Resume"
+    delete:
+      operationId: deleteResume
+      tags: [resumes]
+      summary: Delete a resume
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /resumes/{id}/generate:
+    post:
+      operationId: generateResume
+      tags: [resumes]
+      summary: AI-generate resume content from connected profile data
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Generated resume
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Resume"
+
+  # ─── Interview Readiness ─────────────────────────────────────────────────────
+  /interview/readiness:
+    get:
+      operationId: getInterviewReadiness
+      tags: [interview]
+      summary: Get interview readiness assessment for all role types
+      responses:
+        "200":
+          description: Interview readiness data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InterviewReadiness"
+
+  /interview/company-readiness:
+    get:
+      operationId: getCompanyReadiness
+      tags: [interview]
+      summary: Get readiness scores for top companies (FAANG + Indian product companies)
+      responses:
+        "200":
+          description: Company readiness scores
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CompanyReadiness"
+
+  # ─── Career Coach ─────────────────────────────────────────────────────────────
+  /career-coach/messages:
+    get:
+      operationId: getCareerCoachMessages
+      tags: [career-coach]
+      summary: Get chat history with AI career coach
+      responses:
+        "200":
+          description: Messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChatMessage"
+    post:
+      operationId: sendCareerCoachMessage
+      tags: [career-coach]
+      summary: Send a message to the AI career coach
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatMessageInput"
+      responses:
+        "200":
+          description: AI response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessage"
+
+  /career-coach/messages/clear:
+    delete:
+      operationId: clearCareerCoachMessages
+      tags: [career-coach]
+      summary: Clear chat history
+      responses:
+        "204":
+          description: Cleared
+
+  # ─── Learning Roadmap ────────────────────────────────────────────────────────
+  /roadmap:
+    get:
+      operationId: getRoadmap
+      tags: [roadmap]
+      summary: Get personalized learning roadmap
+      responses:
+        "200":
+          description: Learning roadmap
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LearningRoadmap"
+
+  /roadmap/goals:
+    get:
+      operationId: getRoadmapGoals
+      tags: [roadmap]
+      summary: Get daily / weekly / monthly learning goals
+      responses:
+        "200":
+          description: Goals
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoadmapGoals"
+
+  /roadmap/goals/{id}/complete:
+    patch:
+      operationId: completeGoal
+      tags: [roadmap]
+      summary: Mark a goal as complete
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Updated goal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Goal"
+
+  # ─── Gamification ─────────────────────────────────────────────────────────────
+  /gamification/profile:
+    get:
+      operationId: getGamificationProfile
+      tags: [gamification]
+      summary: Get user XP, level, and badges
+      responses:
+        "200":
+          description: Gamification profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GamificationProfile"
+
+  /gamification/leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [gamification]
+      summary: Get global leaderboard
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Leaderboard
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaderboardEntry"
+
+  # ─── Recruiter ────────────────────────────────────────────────────────────────
+  /recruiter/search:
+    get:
+      operationId: searchDevelopers
+      tags: [recruiter]
+      summary: Search developers by skills, scores, and location
+      parameters:
+        - name: skills
+          in: query
+          schema:
+            type: string
+          description: Comma-separated skill names
+        - name: minGithubScore
+          in: query
+          schema:
+            type: integer
+        - name: minCodingScore
+          in: query
+          schema:
+            type: integer
+        - name: location
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeveloperSearchResult"
+
+  /recruiter/bookmarks:
+    get:
+      operationId: getRecruiterBookmarks
+      tags: [recruiter]
+      summary: Get bookmarked developers
+      responses:
+        "200":
+          description: Bookmarks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RecruiterBookmark"
+    post:
+      operationId: addRecruiterBookmark
+      tags: [recruiter]
+      summary: Bookmark a developer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecruiterBookmarkInput"
+      responses:
+        "201":
+          description: Bookmarked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecruiterBookmark"
+
+  /recruiter/bookmarks/{userId}:
+    delete:
+      operationId: removeRecruiterBookmark
+      tags: [recruiter]
+      summary: Remove a developer bookmark
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Removed
+
+  # ─── Public Profiles ──────────────────────────────────────────────────────────
+  /public/profile/{username}:
+    get:
+      operationId: getPublicProfile
+      tags: [public]
+      summary: Get public developer profile
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Public profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicProfile"
+        "404":
+          description: Not found
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    # ─── Users ──────────────────────────────────────────────────────────────────
+    UserProfile:
+      type: object
+      required: [id, clerkId, email, role, createdAt]
+      properties:
+        id:
+          type: integer
+        clerkId:
+          type: string
+        email:
+          type: string
+        name:
+          type: ["string", "null"]
+        username:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        bio:
+          type: ["string", "null"]
+        location:
+          type: ["string", "null"]
+        college:
+          type: ["string", "null"]
+        graduationYear:
+          type: ["integer", "null"]
+        role:
+          type: string
+          enum: [student, recruiter, admin]
+        overallScore:
+          type: ["integer", "null"]
+        githubConnected:
+          type: boolean
+        xp:
+          type: integer
+          default: 0
+        level:
+          type: integer
+          default: 1
+        streak:
+          type: integer
+          default: 0
+        createdAt:
+          type: string
+
+    UserProfileUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        username:
+          type: string
+        bio:
+          type: string
+        location:
+          type: string
+        college:
+          type: string
+        graduationYear:
+          type: integer
+
+    # ─── Dashboard ──────────────────────────────────────────────────────────────
+    DashboardSummary:
+      type: object
+      required: [overallScore, codingScore, projectScore, interviewScore, openSourceScore, resumeScore, atsScore, githubConnected, streak]
+      properties:
+        overallScore:
+          type: integer
+        codingScore:
+          type: integer
+        projectScore:
+          type: integer
+        interviewScore:
+          type: integer
+        openSourceScore:
+          type: integer
+        resumeScore:
+          type: integer
+        atsScore:
+          type: integer
+        githubConnected:
+          type: boolean
+        streak:
+          type: integer
+        xp:
+          type: integer
+        level:
+          type: integer
+        problemsSolved:
+          type: integer
+        totalRepos:
+          type: integer
+        totalStars:
+          type: integer
+
+    HeatmapDay:
+      type: object
+      required: [date, count, level]
+      properties:
+        date:
+          type: string
+        count:
+          type: integer
+        level:
+          type: integer
+
+    MonthlyProgress:
+      type: object
+      required: [months]
+      properties:
+        months:
+          type: array
+          items:
+            $ref: "#/components/schemas/MonthStat"
+
+    MonthStat:
+      type: object
+      required: [month, score, problemsSolved, commits]
+      properties:
+        month:
+          type: string
+        score:
+          type: integer
+        problemsSolved:
+          type: integer
+        commits:
+          type: integer
+
+    # ─── GitHub ─────────────────────────────────────────────────────────────────
+    GithubProfile:
+      type: object
+      required: [id, username, totalRepos, stars, forks, followers, following, commits, pullRequests, issues, score]
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        avatarUrl:
+          type: ["string", "null"]
+        bio:
+          type: ["string", "null"]
+        totalRepos:
+          type: integer
+        stars:
+          type: integer
+        forks:
+          type: integer
+        followers:
+          type: integer
+        following:
+          type: integer
+        commits:
+          type: integer
+        pullRequests:
+          type: integer
+        issues:
+          type: integer
+        score:
+          type: integer
+        topLanguage:
+          type: ["string", "null"]
+        weeklyHours:
+          type: ["number", "null"]
+        trendingRepo:
+          type: ["string", "null"]
+
+    GithubConnectInput:
+      type: object
+      required: [username]
+      properties:
+        username:
+          type: string
+
+    GithubRepo:
+      type: object
+      required: [id, name, description, language, stars, forks, isPrivate, updatedAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        language:
+          type: ["string", "null"]
+        stars:
+          type: integer
+        forks:
+          type: integer
+        isPrivate:
+          type: boolean
+        htmlUrl:
+          type: ["string", "null"]
+        updatedAt:
+          type: string
+
+    LanguageStat:
+      type: object
+      required: [language, percentage, color]
+      properties:
+        language:
+          type: string
+        percentage:
+          type: number
+        color:
+          type: string
+
+    WeeklyActivity:
+      type: object
+      required: [week, commits]
+      properties:
+        week:
+          type: string
+        commits:
+          type: integer
+
+    # ─── Coding Profiles ────────────────────────────────────────────────────────
+    CodingProfile:
+      type: object
+      required: [id, platform, username, problemsSolved, rating, rank]
+      properties:
+        id:
+          type: integer
+        platform:
+          type: string
+          enum: [leetcode, codeforces, codechef, hackerrank, geeksforgeeks, atcoder]
+        username:
+          type: string
+        problemsSolved:
+          type: integer
+        rating:
+          type: ["integer", "null"]
+        rank:
+          type: ["string", "null"]
+        streak:
+          type: ["integer", "null"]
+        easyCount:
+          type: ["integer", "null"]
+        mediumCount:
+          type: ["integer", "null"]
+        hardCount:
+          type: ["integer", "null"]
+        badges:
+          type: integer
+        lastSynced:
+          type: ["string", "null"]
+
+    CodingProfileInput:
+      type: object
+      required: [platform, username]
+      properties:
+        platform:
+          type: string
+          enum: [leetcode, codeforces, codechef, hackerrank, geeksforgeeks, atcoder]
+        username:
+          type: string
+
+    CodingAggregate:
+      type: object
+      required: [totalProblemsSolved, averageRating, totalBadges, longestStreak, easyCount, mediumCount, hardCount]
+      properties:
+        totalProblemsSolved:
+          type: integer
+        averageRating:
+          type: number
+        totalBadges:
+          type: integer
+        longestStreak:
+          type: integer
+        easyCount:
+          type: integer
+        mediumCount:
+          type: integer
+        hardCount:
+          type: integer
+
+    # ─── Skills ─────────────────────────────────────────────────────────────────
+    Skill:
+      type: object
+      required: [id, name, category, score, confidence, color]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        category:
+          type: string
+        score:
+          type: integer
+        confidence:
+          type: string
+          enum: [low, medium, high]
+        improvementSuggestion:
+          type: ["string", "null"]
+        color:
+          type: ["string", "null"]
+
+    SkillCategory:
+      type: object
+      required: [category, score, skills]
+      properties:
+        category:
+          type: string
+        score:
+          type: integer
+        skills:
+          type: array
+          items:
+            $ref: "#/components/schemas/Skill"
+
+    AnalysisResult:
+      type: object
+      required: [status, message]
+      properties:
+        status:
+          type: string
+        message:
+          type: string
+        skillsDetected:
+          type: ["integer", "null"]
+
+    # ─── Projects ───────────────────────────────────────────────────────────────
+    Project:
+      type: object
+      required: [id, name, language, stars, difficulty, score]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        language:
+          type: ["string", "null"]
+        stars:
+          type: integer
+        difficulty:
+          type: string
+          enum: [beginner, intermediate, advanced, expert]
+        score:
+          type: integer
+        techStack:
+          type: array
+          items:
+            type: string
+        htmlUrl:
+          type: ["string", "null"]
+
+    ProjectDetail:
+      type: object
+      required: [id, name, score, difficulty, codeComplexity, maintainabilityIndex, documentationScore, readabilityScore, testingScore, securityScore]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        summary:
+          type: ["string", "null"]
+        architecture:
+          type: ["string", "null"]
+        techStack:
+          type: array
+          items:
+            type: string
+        htmlUrl:
+          type: ["string", "null"]
+        difficulty:
+          type: string
+          enum: [beginner, intermediate, advanced, expert]
+        language:
+          type: ["string", "null"]
+        score:
+          type: integer
+        codeComplexity:
+          type: integer
+        maintainabilityIndex:
+          type: integer
+        documentationScore:
+          type: integer
+        readabilityScore:
+          type: integer
+        testingScore:
+          type: integer
+        securityScore:
+          type: integer
+        performanceSuggestions:
+          type: array
+          items:
+            type: string
+        designPatterns:
+          type: array
+          items:
+            type: string
+
+    # ─── Resumes ────────────────────────────────────────────────────────────────
+    Resume:
+      type: object
+      required: [id, title, template, resumeScore, atsScore, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        template:
+          type: string
+          enum: [fresher, experienced, product, startup, internship]
+        content:
+          type: ["object", "null"]
+          description: Structured resume content as JSON
+        resumeScore:
+          type: integer
+        atsScore:
+          type: integer
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    ResumeInput:
+      type: object
+      required: [title, template]
+      properties:
+        title:
+          type: string
+        template:
+          type: string
+          enum: [fresher, experienced, product, startup, internship]
+
+    ResumeUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        template:
+          type: string
+          enum: [fresher, experienced, product, startup, internship]
+        content:
+          type: object
+          description: Structured resume content as JSON
+
+    # ─── Interview ──────────────────────────────────────────────────────────────
+    InterviewReadiness:
+      type: object
+      required: [overallReadiness, roles, strengths, weaknesses, learningPlan]
+      properties:
+        overallReadiness:
+          type: integer
+        roles:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoleReadiness"
+        strengths:
+          type: array
+          items:
+            type: string
+        weaknesses:
+          type: array
+          items:
+            type: string
+        learningPlan:
+          type: array
+          items:
+            type: string
+        expectedSalaryMin:
+          type: ["integer", "null"]
+        expectedSalaryMax:
+          type: ["integer", "null"]
+        recommendedProjects:
+          type: array
+          items:
+            type: string
+        recommendedCertifications:
+          type: array
+          items:
+            type: string
+
+    RoleReadiness:
+      type: object
+      required: [role, readiness, missing]
+      properties:
+        role:
+          type: string
+        readiness:
+          type: integer
+        missing:
+          type: array
+          items:
+            type: string
+
+    CompanyReadiness:
+      type: object
+      required: [company, score, tier, missing]
+      properties:
+        company:
+          type: string
+        score:
+          type: integer
+        tier:
+          type: string
+        missing:
+          type: array
+          items:
+            type: string
+
+    # ─── Career Coach ───────────────────────────────────────────────────────────
+    ChatMessage:
+      type: object
+      required: [id, role, content, createdAt]
+      properties:
+        id:
+          type: integer
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+        createdAt:
+          type: string
+
+    ChatMessageInput:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+
+    # ─── Roadmap ────────────────────────────────────────────────────────────────
+    LearningRoadmap:
+      type: object
+      required: [currentLevel, targetRole, progressPercent, phases]
+      properties:
+        currentLevel:
+          type: string
+        targetRole:
+          type: string
+        progressPercent:
+          type: integer
+        phases:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoadmapPhase"
+
+    RoadmapPhase:
+      type: object
+      required: [phase, title, isCompleted, items]
+      properties:
+        phase:
+          type: integer
+        title:
+          type: string
+        isCompleted:
+          type: boolean
+        items:
+          type: array
+          items:
+            type: string
+
+    RoadmapGoals:
+      type: object
+      required: [daily, weekly, monthly]
+      properties:
+        daily:
+          type: array
+          items:
+            $ref: "#/components/schemas/Goal"
+        weekly:
+          type: array
+          items:
+            $ref: "#/components/schemas/Goal"
+        monthly:
+          type: array
+          items:
+            $ref: "#/components/schemas/Goal"
+
+    Goal:
+      type: object
+      required: [id, title, type, isCompleted]
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        type:
+          type: string
+          enum: [daily, weekly, monthly]
+        isCompleted:
+          type: boolean
+        xpReward:
+          type: integer
+
+    # ─── Gamification ───────────────────────────────────────────────────────────
+    GamificationProfile:
+      type: object
+      required: [xp, level, levelName, xpToNextLevel, badges, totalBadges]
+      properties:
+        xp:
+          type: integer
+        level:
+          type: integer
+        levelName:
+          type: string
+        xpToNextLevel:
+          type: integer
+        badges:
+          type: array
+          items:
+            $ref: "#/components/schemas/Badge"
+        totalBadges:
+          type: integer
+        streak:
+          type: integer
+        longestStreak:
+          type: integer
+
+    Badge:
+      type: object
+      required: [id, name, description, icon, earnedAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        icon:
+          type: string
+        earnedAt:
+          type: string
+        rarity:
+          type: string
+          enum: [common, rare, epic, legendary]
+
+    LeaderboardEntry:
+      type: object
+      required: [rank, userId, name, avatarUrl, overallScore, xp, level]
+      properties:
+        rank:
+          type: integer
+        userId:
+          type: integer
+        name:
+          type: string
+        avatarUrl:
+          type: ["string", "null"]
+        college:
+          type: ["string", "null"]
+        overallScore:
+          type: integer
+        xp:
+          type: integer
+        level:
+          type: integer
+
+    # ─── Recruiter ──────────────────────────────────────────────────────────────
+    DeveloperSearchResult:
+      type: object
+      required: [total, developers]
+      properties:
+        total:
+          type: integer
+        developers:
+          type: array
+          items:
+            $ref: "#/components/schemas/DeveloperCard"
+
+    DeveloperCard:
+      type: object
+      required: [userId, name, overallScore, githubScore, codingScore, interviewScore, topSkills]
+      properties:
+        userId:
+          type: integer
+        name:
+          type: string
+        avatarUrl:
+          type: ["string", "null"]
+        location:
+          type: ["string", "null"]
+        college:
+          type: ["string", "null"]
+        overallScore:
+          type: integer
+        githubScore:
+          type: integer
+        codingScore:
+          type: integer
+        interviewScore:
+          type: integer
+        resumeScore:
+          type: integer
+        topSkills:
+          type: array
+          items:
+            type: string
+        username:
+          type: ["string", "null"]
+
+    RecruiterBookmark:
+      type: object
+      required: [id, bookmarkedUserId, bookmarkedUser, createdAt]
+      properties:
+        id:
+          type: integer
+        bookmarkedUserId:
+          type: integer
+        bookmarkedUser:
+          $ref: "#/components/schemas/DeveloperCard"
+        notes:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [saved, shortlisted, contacted, rejected]
+        createdAt:
+          type: string
+
+    RecruiterBookmarkInput:
+      type: object
+      required: [bookmarkedUserId]
+      properties:
+        bookmarkedUserId:
+          type: integer
+        notes:
+          type: string
+        status:
+          type: string
+          enum: [saved, shortlisted, contacted, rejected]
+
+    # ─── Public ─────────────────────────────────────────────────────────────────
+    PublicProfile:
+      type: object
+      required: [username, name, overallScore, skills, projects, githubProfile]
+      properties:
+        username:
+          type: string
+        name:
+          type: string
+        avatarUrl:
+          type: ["string", "null"]
+        bio:
+          type: ["string", "null"]
+        location:
+          type: ["string", "null"]
+        college:
+          type: ["string", "null"]
+        overallScore:
+          type: integer
+        skills:
+          type: array
+          items:
+            $ref: "#/components/schemas/Skill"
+        projects:
+          type: array
+          items:
+            $ref: "#/components/schemas/Project"
+        githubProfile:
+          $ref: "#/components/schemas/GithubProfile"
+        codingProfiles:
+          type: array
+          items:
+            $ref: "#/components/schemas/CodingProfile"
+        badges:
+          type: array
+          items:
+            $ref: "#/components/schemas/Badge"

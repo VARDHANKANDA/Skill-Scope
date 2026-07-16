@@ -1,0 +1,2 @@
+- [SkillScope project overview](skillscope-overview.md) — full-stack SaaS: stack, auth, DB schema, route map, and key gotchas
+- [DB project references](db-project-references.md) — lib/db must be tsc-built before api-server typecheck passes

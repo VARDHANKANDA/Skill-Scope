@@ -1,0 +1,87 @@
+import { Router, type IRouter } from "express";
+import { getAuth } from "@clerk/express";
+import { db, usersTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
+import { requireAuth, type AuthedRequest } from "../middlewares/requireAuth";
+import { GetMeResponse, UpdateMeBody, SyncUserResponse } from "@workspace/api-zod";
+
+const router: IRouter = Router();
+
+// GET /users/me
+router.get("/users/me", requireAuth, async (req: AuthedRequest, res): Promise<void> => {
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.dbUserId!));
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return;
+  }
+  res.json(GetMeResponse.parse({
+    ...user,
+    githubConnected: user.githubConnected === 1,
+    createdAt: user.createdAt.toISOString(),
+  }));
+});
+
+// PUT /users/me
+router.put("/users/me", requireAuth, async (req: AuthedRequest, res): Promise<void> => {
+  const parsed = UpdateMeBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const [updated] = await db
+    .update(usersTable)
+    .set(parsed.data)
+    .where(eq(usersTable.id, req.dbUserId!))
+    .returning();
+  res.json(GetMeResponse.parse({
+    ...updated,
+    githubConnected: updated.githubConnected === 1,
+    createdAt: updated.createdAt.toISOString(),
+  }));
+});
+
+// POST /users/me/sync — JIT provisioning from Clerk session
+router.post("/users/me/sync", async (req, res): Promise<void> => {
+  const auth = getAuth(req);
+  const clerkId = auth?.userId;
+  if (!clerkId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  // Extract user info from session claims
+  const claims = auth.sessionClaims as Record<string, unknown> | undefined;
+  const email = (claims?.email as string) || `${clerkId}@placeholder.dev`;
+  const name = (claims?.name as string) || null;
+  const avatarUrl = (claims?.image_url as string) || null;
+  const username = (claims?.username as string) || null;
+
+  let [user] = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkId));
+
+  if (!user) {
+    // Create new user — wrapped in transaction to avoid partial-failure races
+    await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(usersTable)
+        .values({ clerkId, email, name, avatarUrl, username })
+        .returning();
+      user = created;
+    });
+  } else {
+    // Update mutable fields from Clerk
+    const updates: Partial<typeof usersTable.$inferInsert> = {};
+    if (name && name !== user.name) updates.name = name;
+    if (avatarUrl && avatarUrl !== user.avatarUrl) updates.avatarUrl = avatarUrl;
+    if (Object.keys(updates).length > 0) {
+      [user] = await db.update(usersTable).set(updates).where(eq(usersTable.clerkId, clerkId)).returning();
+    }
+  }
+
+  res.json(SyncUserResponse.parse({
+    ...user,
+    githubConnected: user.githubConnected === 1,
+    createdAt: user.createdAt.toISOString(),
+  }));
+});
+
+export default router;
