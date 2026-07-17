@@ -1,3 +1,4 @@
+import { setBaseUrl } from "@workspace/api-client-react";
 import { useEffect, useRef } from 'react';
 import { ThemeProvider } from '@/contexts/theme-context';
 import { ClerkProvider, SignIn, SignUp, Show, useClerk, useUser } from '@clerk/react';
@@ -209,7 +210,7 @@ function ClerkProviderWithRoutes() {
     </ClerkProvider>
   );
 }
-
+setBaseUrl(import.meta.env.VITE_API_URL ?? null);
 function App() {
   return (
     <ThemeProvider>
