@@ -1,7 +1,7 @@
-import { setBaseUrl } from "@workspace/api-client-react";
+import { setBaseUrl, setAuthTokenGetter } from "@workspace/api-client-react";
 import { useEffect, useRef } from 'react';
 import { ThemeProvider } from '@/contexts/theme-context';
-import { ClerkProvider, SignIn, SignUp, Show, useClerk, useUser, useSignIn, useSignUp, AuthenticateWithRedirectCallback } from '@clerk/react';
+import { ClerkProvider, SignIn, SignUp, Show, useClerk, useUser, useSignIn, useSignUp, AuthenticateWithRedirectCallback, useAuth } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
 import { Github } from 'lucide-react';
@@ -99,6 +99,33 @@ const clerkAppearance = {
     main: "px-8 py-6",
   },
 };
+
+function ClerkTokenRegister() {
+  const { getToken, isLoaded, userId } = useAuth();
+
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    if (userId) {
+      setAuthTokenGetter(async () => {
+        try {
+          return await getToken();
+        } catch (e) {
+          console.error("Failed to fetch Clerk JWT token:", e);
+          return null;
+        }
+      });
+    } else {
+      setAuthTokenGetter(null);
+    }
+
+    return () => {
+      setAuthTokenGetter(null);
+    };
+  }, [getToken, isLoaded, userId]);
+
+  return null;
+}
 
 function ClerkQueryClientCacheInvalidator() {
   const { addListener } = useClerk();
@@ -334,6 +361,7 @@ function ClerkProviderWithRoutes() {
     >
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
+          <ClerkTokenRegister />
           <ClerkQueryClientCacheInvalidator />
           <Switch>
             <Route path="/" component={HomeRedirect} />
