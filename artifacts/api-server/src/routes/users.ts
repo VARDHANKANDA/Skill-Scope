@@ -42,6 +42,8 @@ router.put("/users/me", requireAuth, async (req: AuthedRequest, res): Promise<vo
 
 import { clerkClient } from "@clerk/express";
 
+import { logger } from "../lib/logger";
+
 // POST /users/me/sync — JIT provisioning from Clerk session
 router.post("/users/me/sync", async (req, res): Promise<void> => {
   const auth = getAuth(req);
@@ -73,27 +75,47 @@ router.post("/users/me/sync", async (req, res): Promise<void> => {
     username = (claims?.username as string) || username;
   }
 
-  let [user] = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkId));
+  let user: any = undefined;
+
+  try {
+    const results = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkId));
+    user = results[0];
+
+    if (!user) {
+      // Create new user — wrapped in transaction to avoid partial-failure races
+      await db.transaction(async (tx) => {
+        const [created] = await tx
+          .insert(usersTable)
+          .values({ clerkId, email, name, avatarUrl, username })
+          .returning();
+        user = created;
+      });
+    } else {
+      // Update mutable fields from Clerk
+      const updates: Partial<typeof usersTable.$inferInsert> = {};
+      if (email && email !== user.email) updates.email = email;
+      if (name && name !== user.name) updates.name = name;
+      if (avatarUrl && avatarUrl !== user.avatarUrl) updates.avatarUrl = avatarUrl;
+      if (username && username !== user.username) updates.username = username;
+      if (Object.keys(updates).length > 0) {
+        const [updated] = await db.update(usersTable).set(updates).where(eq(usersTable.clerkId, clerkId)).returning();
+        user = updated;
+      }
+    }
+  } catch (err: any) {
+    logger.error({
+      message: err.message,
+      code: err.code,
+      detail: err.detail,
+      hint: err.hint,
+      stack: err.stack,
+    }, "PostgreSQL Query Failure inside /users/me/sync");
+    throw err;
+  }
 
   if (!user) {
-    // Create new user — wrapped in transaction to avoid partial-failure races
-    await db.transaction(async (tx) => {
-      const [created] = await tx
-        .insert(usersTable)
-        .values({ clerkId, email, name, avatarUrl, username })
-        .returning();
-      user = created;
-    });
-  } else {
-    // Update mutable fields from Clerk
-    const updates: Partial<typeof usersTable.$inferInsert> = {};
-    if (email && email !== user.email) updates.email = email;
-    if (name && name !== user.name) updates.name = name;
-    if (avatarUrl && avatarUrl !== user.avatarUrl) updates.avatarUrl = avatarUrl;
-    if (username && username !== user.username) updates.username = username;
-    if (Object.keys(updates).length > 0) {
-      [user] = await db.update(usersTable).set(updates).where(eq(usersTable.clerkId, clerkId)).returning();
-    }
+    res.status(500).json({ error: "Failed to sync user database profile" });
+    return;
   }
 
   res.json(SyncUserResponse.parse({
