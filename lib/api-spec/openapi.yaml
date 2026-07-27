@@ -153,6 +153,13 @@ paths:
                 $ref: "#/components/schemas/GithubProfile"
         "404":
           description: Not connected
+    delete:
+      operationId: disconnectGithub
+      tags: [github]
+      summary: Disconnect GitHub profile
+      responses:
+        "204":
+          description: GitHub profile disconnected
 
   /github/connect:
     post:
@@ -966,7 +973,7 @@ components:
           type: integer
         platform:
           type: string
-          enum: [leetcode, codeforces, codechef, hackerrank, geeksforgeeks, atcoder]
+          enum: [leetcode, codeforces, codechef, hackerrank, geeksforgeeks, atcoder, hackerearth]
         username:
           type: string
         problemsSolved:
@@ -994,7 +1001,7 @@ components:
       properties:
         platform:
           type: string
-          enum: [leetcode, codeforces, codechef, hackerrank, geeksforgeeks, atcoder]
+          enum: [leetcode, codeforces, codechef, hackerrank, geeksforgeeks, atcoder, hackerearth]
         username:
           type: string
 

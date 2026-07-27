@@ -22,22 +22,25 @@ const LANGUAGE_COLORS: Record<string, string> = {
   Shell: "#89e051", Vue: "#41b883", Svelte: "#ff3e00", Zig: "#ec915c",
 };
 
-function ghHeaders(): Record<string, string> {
+import { clerkClient, getAuth } from "@clerk/express";
+
+function ghHeaders(customToken?: string): Record<string, string> {
   const h: Record<string, string> = {
     Accept: "application/vnd.github+json",
     "X-GitHub-Api-Version": "2022-11-28",
     "User-Agent": "SkillScope/1.0",
   };
-  if (process.env.GITHUB_TOKEN) h["Authorization"] = `Bearer ${process.env.GITHUB_TOKEN}`;
+  const token = customToken || process.env.GITHUB_TOKEN;
+  if (token) h["Authorization"] = `Bearer ${token}`;
   return h;
 }
 
 type GHError = { status: number; message: string };
 
-async function ghFetch<T>(path: string): Promise<{ data: T } | { error: GHError }> {
+async function ghFetch<T>(path: string, token?: string): Promise<{ data: T } | { error: GHError }> {
   try {
     const res = await fetch(`https://api.github.com${path}`, {
-      headers: ghHeaders(),
+      headers: ghHeaders(token),
       signal: AbortSignal.timeout(10_000),
     });
     if (res.status === 404) return { error: { status: 404, message: "Not found" } };
@@ -63,17 +66,17 @@ interface GHEvent {
   payload?: { commits?: unknown[]; action?: string; pull_request?: unknown };
 }
 
-async function fetchGithubData(username: string): Promise<
+async function fetchGithubData(username: string, token?: string): Promise<
   | { data: ReturnType<typeof buildGithubPayload> }
   | { error: GHError }
 > {
-  const userResult = await ghFetch<GHUser>(`/users/${username}`);
+  const userResult = await ghFetch<GHUser>(`/users/${username}`, token);
   if ("error" in userResult) return { error: userResult.error };
   const user = userResult.data;
 
   const [reposResult, eventsResult] = await Promise.all([
-    ghFetch<GHRepo[]>(`/users/${username}/repos?per_page=100&sort=updated`),
-    ghFetch<GHEvent[]>(`/users/${username}/events?per_page=100`),
+    ghFetch<GHRepo[]>(`/users/${username}/repos?per_page=100&sort=updated`, token),
+    ghFetch<GHEvent[]>(`/users/${username}/events?per_page=100`, token),
   ]);
 
   const repos: GHRepo[] = "data" in reposResult ? reposResult.data : [];
@@ -83,7 +86,7 @@ async function fetchGithubData(username: string): Promise<
   // Aggregate language bytes
   const langBytes: Record<string, number> = {};
   const langResults = await Promise.all(
-    ownedRepos.slice(0, 20).map(r => ghFetch<Record<string, number>>(`/repos/${username}/${r.name}/languages`))
+    ownedRepos.slice(0, 20).map(r => ghFetch<Record<string, number>>(`/repos/${username}/${r.name}/languages`, token))
   );
   for (const result of langResults) {
     if ("data" in result) {
@@ -210,7 +213,23 @@ router.post("/github/connect", requireAuth, async (req: AuthedRequest, res): Pro
   const parsed = ConnectGithubBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
 
-  const result = await fetchGithubData(parsed.data.username);
+  // Fetch Clerk user OAuth token if they signed in via GitHub
+  const auth = getAuth(req);
+  const clerkUserId = auth?.userId;
+  let clerkToken: string | undefined;
+  if (clerkUserId) {
+    try {
+      const tokens = await clerkClient.users.getUserOauthAccessToken(
+        clerkUserId,
+        "github"
+      );
+      clerkToken = tokens?.data?.[0]?.token;
+    } catch (e) {
+      console.error("Failed to retrieve Clerk user OAuth token:", e);
+    }
+  }
+
+  const result = await fetchGithubData(parsed.data.username, clerkToken);
   if ("error" in result) {
     const status = result.error.status === 404 ? 404 : result.error.status === 429 ? 429 : 502;
     res.status(status).json({ error: result.error.message });
@@ -228,6 +247,14 @@ router.post("/github/connect", requireAuth, async (req: AuthedRequest, res): Pro
   await db.update(usersTable).set({ githubConnected: 1 }).where(eq(usersTable.id, userId));
 
   res.json(ConnectGithubResponse.parse({ ...profile, weeklyHours: profile.weeklyHours ? parseFloat(profile.weeklyHours) : null }));
+});
+
+// DELETE /github/profile
+router.delete("/github/profile", requireAuth, async (req: AuthedRequest, res): Promise<void> => {
+  const userId = req.dbUserId!;
+  await db.delete(githubProfilesTable).where(eq(githubProfilesTable.userId, userId));
+  await db.update(usersTable).set({ githubConnected: 0 }).where(eq(usersTable.id, userId));
+  res.status(204).end();
 });
 
 // GET /github/repos

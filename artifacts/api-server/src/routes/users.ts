@@ -40,6 +40,8 @@ router.put("/users/me", requireAuth, async (req: AuthedRequest, res): Promise<vo
   }));
 });
 
+import { clerkClient } from "@clerk/express";
+
 // POST /users/me/sync — JIT provisioning from Clerk session
 router.post("/users/me/sync", async (req, res): Promise<void> => {
   const auth = getAuth(req);
@@ -49,12 +51,27 @@ router.post("/users/me/sync", async (req, res): Promise<void> => {
     return;
   }
 
-  // Extract user info from session claims
-  const claims = auth.sessionClaims as Record<string, unknown> | undefined;
-  const email = (claims?.email as string) || `${clerkId}@placeholder.dev`;
-  const name = (claims?.name as string) || null;
-  const avatarUrl = (claims?.image_url as string) || null;
-  const username = (claims?.username as string) || null;
+  // Fetch directly from Clerk API to ensure we always have the freshest avatar/profile data
+  let email = `${clerkId}@placeholder.dev`;
+  let name: string | null = null;
+  let avatarUrl: string | null = null;
+  let username: string | null = null;
+
+  try {
+    const clerkUser = await clerkClient.users.getUser(clerkId);
+    email = clerkUser.emailAddresses[0]?.emailAddress ?? email;
+    name = clerkUser.fullName;
+    avatarUrl = clerkUser.imageUrl;
+    username = clerkUser.username;
+  } catch (e) {
+    console.error("Failed to fetch user from Clerk:", e);
+    // Fallback to session claims if Clerk API call fails
+    const claims = auth.sessionClaims as Record<string, unknown> | undefined;
+    email = (claims?.email as string) || email;
+    name = (claims?.name as string) || name;
+    avatarUrl = (claims?.image_url as string) || avatarUrl;
+    username = (claims?.username as string) || username;
+  }
 
   let [user] = await db.select().from(usersTable).where(eq(usersTable.clerkId, clerkId));
 
@@ -70,8 +87,10 @@ router.post("/users/me/sync", async (req, res): Promise<void> => {
   } else {
     // Update mutable fields from Clerk
     const updates: Partial<typeof usersTable.$inferInsert> = {};
+    if (email && email !== user.email) updates.email = email;
     if (name && name !== user.name) updates.name = name;
     if (avatarUrl && avatarUrl !== user.avatarUrl) updates.avatarUrl = avatarUrl;
+    if (username && username !== user.username) updates.username = username;
     if (Object.keys(updates).length > 0) {
       [user] = await db.update(usersTable).set(updates).where(eq(usersTable.clerkId, clerkId)).returning();
     }

@@ -8,12 +8,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const STATS = [
-  { value: "10,000+", label: "Developers Profiled" },
-  { value: "500+", label: "Hiring Companies" },
-  { value: "₹28 LPA", label: "Avg. Salary (Placed)" },
-  { value: "4.8/5", label: "Developer Rating" },
-];
+
 
 const FEATURES = [
   {
@@ -49,7 +44,7 @@ const FEATURES = [
   {
     icon: Sparkles,
     title: "AI Career Coach",
-    description: "Your personal mentor with full context on your profile. Salary negotiation, company prep, upskilling roadmaps — all tailored to Indian market LPA.",
+    description: "Your personal mentor with full context on your profile. Salary negotiation, company prep, upskilling roadmaps — all tailored to your local market.",
     badge: "24/7 Available",
   },
 ];
@@ -72,34 +67,9 @@ const STEPS = [
   },
 ];
 
-const TESTIMONIALS = [
-  {
-    name: "Arjun Sharma",
-    role: "SDE 2 at Razorpay",
-    college: "IIT Bombay, 2023",
-    quote: "SkillScope showed me exactly why I was failing Flipkart interviews — my system design score was 23/100. Fixed it in 3 months, got the offer.",
-    avatar: "AS",
-    salary: "₹32 LPA",
-  },
-  {
-    name: "Priya Nair",
-    role: "Software Engineer at CRED",
-    college: "NIT Trichy, 2022",
-    quote: "The AI resume builder saved me 10+ hours. It pulled everything from my GitHub and LeetCode — ATS score went from 54% to 89%.",
-    avatar: "PN",
-    salary: "₹26 LPA",
-  },
-  {
-    name: "Rohit Gupta",
-    role: "Backend Engineer at Zepto",
-    college: "BITS Pilani, 2024",
-    quote: "The leaderboard motivated me to solve 200 more LC problems in 6 weeks. Placed in campus placements with the highest package in my batch.",
-    avatar: "RG",
-    salary: "₹28 LPA",
-  },
-];
 
-const COMPANIES = ["Flipkart", "Razorpay", "CRED", "Zepto", "PhonePe", "Meesho", "Swiggy", "Amazon India"];
+
+const COMPANIES = ["Google", "Microsoft", "Amazon", "Meta", "Netflix", "Uber", "Stripe", "Airbnb"];
 
 const fadeUp = {
   initial: { opacity: 0, y: 24 },
@@ -120,7 +90,6 @@ export default function LandingPage() {
           <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground">
             <a href="#features" className="hover:text-foreground transition-colors">Features</a>
             <a href="#how-it-works" className="hover:text-foreground transition-colors">How it works</a>
-            <a href="#testimonials" className="hover:text-foreground transition-colors">Stories</a>
           </nav>
           <div className="flex items-center gap-3">
             <Link href="/sign-in">
@@ -140,7 +109,7 @@ export default function LandingPage() {
           <div className="container relative z-10 mx-auto px-4 max-w-5xl text-center">
             <motion.div {...fadeUp}>
               <Badge variant="secondary" className="mb-6 px-4 py-1.5 text-sm font-medium">
-                🇮🇳 Built for Indian Software Engineers
+                Built for Software Engineers
               </Badge>
             </motion.div>
             <motion.h1
@@ -178,19 +147,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Stats bar */}
-        <section className="border-y bg-muted/30">
-          <div className="container mx-auto px-4 max-w-5xl py-12">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-              {STATS.map((stat) => (
-                <div key={stat.label} className="text-center">
-                  <div className="text-3xl font-black text-primary mb-1">{stat.value}</div>
-                  <div className="text-sm text-muted-foreground font-medium">{stat.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+
 
         {/* Companies */}
         <section className="py-10 border-b">
@@ -258,43 +215,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Testimonials */}
-        <section id="testimonials" className="py-24">
-          <div className="container mx-auto px-4 max-w-5xl">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Engineers who got hired</h2>
-              <p className="text-muted-foreground mt-3">Real stories from developers who used SkillScope to land top-paying roles.</p>
-            </div>
-            <div className="grid gap-6 md:grid-cols-3">
-              {TESTIMONIALS.map((t) => (
-                <div key={t.name} className="flex flex-col gap-5 p-6 rounded-2xl border bg-card shadow-sm">
-                  <div className="flex gap-1">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                    ))}
-                  </div>
-                  <blockquote className="text-sm text-muted-foreground leading-relaxed flex-1">
-                    "{t.quote}"
-                  </blockquote>
-                  <div className="flex items-center gap-3 pt-4 border-t">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
-                      {t.avatar}
-                    </div>
-                    <div>
-                      <div className="font-semibold text-sm">{t.name}</div>
-                      <div className="text-xs text-muted-foreground">{t.role}</div>
-                      <div className="text-xs text-muted-foreground">{t.college}</div>
-                    </div>
-                    <div className="ml-auto text-right">
-                      <div className="text-sm font-bold text-emerald-600">{t.salary}</div>
-                      <div className="text-[10px] text-muted-foreground">offer received</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+
 
         {/* Final CTA */}
         <section className="py-24 bg-primary/5 border-t">
@@ -307,7 +228,7 @@ export default function LandingPage() {
               Your next opportunity is waiting
             </h2>
             <p className="text-muted-foreground mb-8 max-w-lg mx-auto">
-              Join 10,000+ Indian engineers who built verified profiles and got discovered by recruiters from Flipkart, Amazon, and top startups.
+              Join 10,000+ engineers who built verified profiles and got discovered by recruiters from top startups and global tech companies.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/sign-up">
@@ -333,7 +254,7 @@ export default function LandingPage() {
               <img src="/logo.svg" alt="SkillScope" className="h-5 w-5" />
               SkillScope
             </div>
-            <p>© {new Date().getFullYear()} SkillScope. Made with ❤️ for Indian engineers.</p>
+            <p>© {new Date().getFullYear()} SkillScope. All rights reserved.</p>
             <div className="flex gap-6">
               <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
               <a href="#" className="hover:text-foreground transition-colors">Terms</a>

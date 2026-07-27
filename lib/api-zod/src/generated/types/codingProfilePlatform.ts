@@ -16,4 +16,5 @@ export const CodingProfilePlatform = {
   hackerrank: 'hackerrank',
   geeksforgeeks: 'geeksforgeeks',
   atcoder: 'atcoder',
+  hackerearth: 'hackerearth',
 } as const;

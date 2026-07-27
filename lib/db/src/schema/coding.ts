@@ -3,7 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
 
-export const platformEnum = pgEnum("platform", ["leetcode", "codeforces", "codechef", "hackerrank", "geeksforgeeks", "atcoder"]);
+export const platformEnum = pgEnum("platform", ["leetcode", "codeforces", "codechef", "hackerrank", "geeksforgeeks", "atcoder", "hackerearth"]);
 
 export const codingProfilesTable = pgTable("coding_profiles", {
   id: serial("id").primaryKey(),

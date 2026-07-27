@@ -3,8 +3,10 @@ import {
   useGetGithubRepos, 
   useGetGithubLanguages, 
   useGetCommitActivity,
-  useConnectGithub
+  useConnectGithub,
+  useDisconnectGithub
 } from '@workspace/api-client-react';
+import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -23,7 +25,9 @@ export default function GithubPage() {
   const { data: activity, isLoading: activityLoading } = useGetCommitActivity();
   
   const connectGithub = useConnectGithub();
+  const disconnectGithub = useDisconnectGithub();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [username, setUsername] = useState('');
 
   const handleConnect = (e: React.FormEvent) => {
@@ -35,6 +39,40 @@ export default function GithubPage() {
         queryClient.invalidateQueries({ queryKey: getGetGithubReposQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetGithubLanguagesQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetCommitActivityQueryKey() });
+        toast({
+          title: "Success",
+          description: "GitHub profile connected successfully!",
+        });
+      },
+      onError: (err: any) => {
+        const errMsg = err?.response?.data?.error || err?.message || "Failed to connect to GitHub. Verify username and try again.";
+        toast({
+          title: "Connection Failed",
+          description: errMsg,
+          variant: "destructive",
+        });
+      }
+    });
+  };
+
+  const handleDisconnect = () => {
+    disconnectGithub.mutate(undefined, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetGithubProfileQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetGithubReposQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetGithubLanguagesQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetCommitActivityQueryKey() });
+        toast({
+          title: "Success",
+          description: "GitHub profile disconnected successfully.",
+        });
+      },
+      onError: (err: any) => {
+        toast({
+          title: "Error",
+          description: err?.message || "Failed to disconnect GitHub profile.",
+          variant: "destructive",
+        });
       }
     });
   };
@@ -96,6 +134,15 @@ export default function GithubPage() {
           <div className="h-12 w-12 rounded-full overflow-hidden border">
             {profile.avatarUrl ? <img src={profile.avatarUrl} alt={profile.username} className="h-full w-full object-cover" /> : <Github className="h-full w-full p-2 bg-muted text-muted-foreground" />}
           </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleDisconnect}
+            disabled={disconnectGithub.isPending}
+            className="text-destructive hover:bg-destructive/10"
+          >
+            {disconnectGithub.isPending ? "Disconnecting..." : "Disconnect"}
+          </Button>
         </div>
       </div>
 

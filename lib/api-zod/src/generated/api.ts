@@ -178,6 +178,12 @@ export const GetGithubProfileResponse = zod.object({
 
 
 /**
+ * @summary Disconnect GitHub profile
+ */
+export const DisconnectGithubResponse = zod.void()
+
+
+/**
  * @summary Connect or refresh GitHub profile by username
  */
 export const ConnectGithubBody = zod.object({
@@ -247,7 +253,7 @@ export const GetCommitActivityResponse = zod.array(GetCommitActivityResponseItem
  */
 export const GetCodingProfilesResponseItem = zod.object({
   "id": zod.number(),
-  "platform": zod.enum(['leetcode', 'codeforces', 'codechef', 'hackerrank', 'geeksforgeeks', 'atcoder']),
+  "platform": zod.enum(['leetcode', 'codeforces', 'codechef', 'hackerrank', 'geeksforgeeks', 'atcoder', 'hackerearth']),
   "username": zod.string(),
   "problemsSolved": zod.number(),
   "rating": zod.number().nullable(),
@@ -266,13 +272,13 @@ export const GetCodingProfilesResponse = zod.array(GetCodingProfilesResponseItem
  * @summary Add a new competitive programming profile
  */
 export const AddCodingProfileBody = zod.object({
-  "platform": zod.enum(['leetcode', 'codeforces', 'codechef', 'hackerrank', 'geeksforgeeks', 'atcoder']),
+  "platform": zod.enum(['leetcode', 'codeforces', 'codechef', 'hackerrank', 'geeksforgeeks', 'atcoder', 'hackerearth']),
   "username": zod.string()
 })
 
 export const AddCodingProfileResponse = zod.object({
   "id": zod.number(),
-  "platform": zod.enum(['leetcode', 'codeforces', 'codechef', 'hackerrank', 'geeksforgeeks', 'atcoder']),
+  "platform": zod.enum(['leetcode', 'codeforces', 'codechef', 'hackerrank', 'geeksforgeeks', 'atcoder', 'hackerearth']),
   "username": zod.string(),
   "problemsSolved": zod.number(),
   "rating": zod.number().nullable(),
@@ -848,7 +854,7 @@ export const GetPublicProfileResponse = zod.object({
 }),
   "codingProfiles": zod.array(zod.object({
   "id": zod.number(),
-  "platform": zod.enum(['leetcode', 'codeforces', 'codechef', 'hackerrank', 'geeksforgeeks', 'atcoder']),
+  "platform": zod.enum(['leetcode', 'codeforces', 'codechef', 'hackerrank', 'geeksforgeeks', 'atcoder', 'hackerearth']),
   "username": zod.string(),
   "problemsSolved": zod.number(),
   "rating": zod.number().nullable(),

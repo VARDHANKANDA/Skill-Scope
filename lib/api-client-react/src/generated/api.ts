@@ -688,6 +688,76 @@ export function useGetGithubProfile<TData = Awaited<ReturnType<typeof getGithubP
 
 
 
+export const getDisconnectGithubUrl = () => {
+
+
+
+
+  return `/api/github/profile`
+}
+
+/**
+ * @summary Disconnect GitHub profile
+ */
+export const disconnectGithub = async ( options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDisconnectGithubUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDisconnectGithubMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disconnectGithub>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof disconnectGithub>>, TError,void, TContext> => {
+
+const mutationKey = ['disconnectGithub'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof disconnectGithub>>, void> = () => {
+
+
+          return  disconnectGithub(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DisconnectGithubMutationResult = NonNullable<Awaited<ReturnType<typeof disconnectGithub>>>
+
+    export type DisconnectGithubMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Disconnect GitHub profile
+ */
+export const useDisconnectGithub = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof disconnectGithub>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof disconnectGithub>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getDisconnectGithubMutationOptions(options));
+    }
+
 export const getConnectGithubUrl = () => {
 
 

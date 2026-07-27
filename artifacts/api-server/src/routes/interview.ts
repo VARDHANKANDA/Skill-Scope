@@ -49,10 +49,10 @@ router.get("/interview/company-readiness", requireAuth, async (req: AuthedReques
     { company: "Google", score: Math.max(15, base - 20), tier: "FAANG", missing: ["Advanced algorithms", "System design at scale", "Strong CS fundamentals"] },
     { company: "Amazon", score: Math.max(20, base - 10), tier: "FAANG", missing: ["Leadership principles", "Behavioral rounds", "Distributed systems"] },
     { company: "Microsoft", score: Math.max(25, base - 5), tier: "FAANG", missing: ["Azure services", "Design patterns", "Coding round prep"] },
-    { company: "Flipkart", score: Math.max(30, base + 5), tier: "Indian Unicorn", missing: ["Backend scalability", "Product sense"] },
-    { company: "Razorpay", score: Math.max(35, base + 10), tier: "Indian Fintech", missing: ["Payment systems", "API design"] },
-    { company: "CRED", score: Math.max(40, base + 12), tier: "Indian Unicorn", missing: ["Fintech domain", "Frontend polish"] },
-    { company: "Zepto", score: Math.max(40, base + 15), tier: "Indian Startup", missing: ["Quick commerce domain", "Scale optimization"] },
+    { company: "Stripe", score: Math.max(30, base + 5), tier: "Fintech Unicorn", missing: ["Distributed systems", "API design", "High concurrency"] },
+    { company: "Uber", score: Math.max(35, base + 10), tier: "Tech Unicorn", missing: ["Geospatial algorithms", "System scale", "Concurrency"] },
+    { company: "Airbnb", score: Math.max(40, base + 12), tier: "Tech Unicorn", missing: ["Search indexing", "Frontend polish"] },
+    { company: "Coinbase", score: Math.max(40, base + 15), tier: "Crypto Fintech", missing: ["Web3 concepts", "Security standards"] },
     { company: "Atlassian", score: Math.max(30, base), tier: "Product Co.", missing: ["Collaboration tools", "Java/Kotlin stack"] },
   ]));
 });

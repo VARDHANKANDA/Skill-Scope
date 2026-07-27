@@ -7,6 +7,7 @@ import {
   getGetCodingAggregateQueryKey,
   type CodingProfileInputPlatform,
 } from '@workspace/api-client-react';
+import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -99,6 +100,14 @@ const PLATFORMS: {
     color: 'border-border/60 bg-muted/30 hover:border-border hover:bg-muted/50',
     iconColor: 'text-muted-foreground',
     url: 'https://atcoder.jp',
+  },
+  {
+    id: 'hackerearth',
+    label: 'HackerEarth',
+    Icon: SiHackerearth,
+    color: 'border-[#2C3454]/40 bg-[#2C3454]/8 hover:border-[#2C3454]/70 hover:bg-[#2C3454]/12',
+    iconColor: 'text-[#2C3454] dark:text-[#5c689c]',
+    url: 'https://hackerearth.com',
   },
 ];
 
@@ -223,6 +232,8 @@ function AddProfileDialog({
 
   const selectedMeta = PLATFORMS.find((p) => p.id === platform);
 
+  const { toast } = useToast();
+
   const handleClose = () => {
     onOpenChange(false);
     // Reset after animation completes
@@ -243,7 +254,19 @@ function AddProfileDialog({
           handleClose();
           queryClient.invalidateQueries({ queryKey: getGetCodingProfilesQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetCodingAggregateQueryKey() });
+          toast({
+            title: "Success",
+            description: `${selectedMeta?.label ?? "Platform"} profile connected successfully!`,
+          });
         },
+        onError: (err: any) => {
+          const errMsg = err?.response?.data?.error || err?.message || "Failed to connect profile. Please verify your username and try again.";
+          toast({
+            title: "Connection Failed",
+            description: errMsg,
+            variant: "destructive",
+          });
+        }
       },
     );
   };
@@ -333,7 +356,7 @@ export default function CodingPage() {
   const { data: aggregate, isLoading: aggregateLoading } = useGetCodingAggregate();
   const deleteProfile = useDeleteCodingProfile();
   const queryClient = useQueryClient();
-
+  const { toast } = useToast();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
@@ -348,7 +371,18 @@ export default function CodingPage() {
           setDeleteId(null);
           queryClient.invalidateQueries({ queryKey: getGetCodingProfilesQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetCodingAggregateQueryKey() });
+          toast({
+            title: "Success",
+            description: "Coding platform profile disconnected successfully.",
+          });
         },
+        onError: (err: any) => {
+          toast({
+            title: "Error",
+            description: err?.message || "Failed to disconnect profile.",
+            variant: "destructive",
+          });
+        }
       },
     );
   };

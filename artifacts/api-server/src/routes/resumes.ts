@@ -137,7 +137,7 @@ Resume template: ${resume.template}
       max_tokens: 2000,
       messages: [{
         role: "system",
-        content: `You are an expert resume writer for software engineers, specializing in ATS-optimized resumes for Indian tech companies (FAANG, unicorns, product companies).
+        content: `You are an expert resume writer for software engineers, specializing in ATS-optimized resumes for top tech companies (FAANG, unicorns, product companies).
 
 Generate a complete, professional resume JSON from the developer's real data. Be ATS-friendly, use strong action verbs, quantify achievements where possible, tailor to the ${resume.template} template.
 

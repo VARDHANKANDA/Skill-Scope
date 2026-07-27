@@ -252,11 +252,11 @@ export default function SettingsPage() {
                 <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
                 <p className="text-sm text-muted-foreground">Password is set and secure.</p>
               </div>
-              <a href="https://accounts.clerk.dev/user/security" target="_blank" rel="noopener noreferrer">
+              <Link href="/account/manage-clerk">
                 <Button variant="outline" className="gap-2">
                   <ExternalLink className="h-4 w-4" /> Change Password on Clerk
                 </Button>
-              </a>
+              </Link>
             </CardContent>
           </Card>
 
@@ -268,11 +268,11 @@ export default function SettingsPage() {
               <CardDescription>Add an extra layer of security to your account.</CardDescription>
             </CardHeader>
             <CardContent>
-              <a href="https://accounts.clerk.dev/user/security" target="_blank" rel="noopener noreferrer">
+              <Link href="/account/manage-clerk">
                 <Button variant="outline" className="gap-2">
                   <ExternalLink className="h-4 w-4" /> Manage 2FA on Clerk
                 </Button>
-              </a>
+              </Link>
             </CardContent>
           </Card>
 
@@ -290,11 +290,11 @@ export default function SettingsPage() {
                   <Badge variant="secondary" className="text-[10px]">Verified</Badge>
                 </div>
               ))}
-              <a href="https://accounts.clerk.dev/user" target="_blank" rel="noopener noreferrer">
+              <Link href="/account/manage-clerk">
                 <Button variant="outline" size="sm" className="gap-2">
                   <ExternalLink className="h-3.5 w-3.5" /> Manage Emails on Clerk
                 </Button>
-              </a>
+              </Link>
             </CardContent>
           </Card>
 
@@ -306,11 +306,11 @@ export default function SettingsPage() {
               <CardDescription>Manage where you're signed in.</CardDescription>
             </CardHeader>
             <CardContent>
-              <a href="https://accounts.clerk.dev/user/security" target="_blank" rel="noopener noreferrer">
+              <Link href="/account/manage-clerk">
                 <Button variant="outline" className="gap-2">
                   <ExternalLink className="h-4 w-4" /> View Active Sessions
                 </Button>
-              </a>
+              </Link>
             </CardContent>
           </Card>
         </TabsContent>

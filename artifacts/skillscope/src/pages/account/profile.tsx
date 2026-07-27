@@ -116,15 +116,11 @@ export default function ProfilePage() {
             </div>
             <div className="space-y-1.5">
               <p className="text-sm text-muted-foreground">Profile pictures are managed through your Clerk account.</p>
-              <a
-                href="https://accounts.clerk.dev/user"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <Link href="/account/manage-clerk">
                 <Button variant="outline" size="sm" className="gap-2">
                   <ExternalLink className="h-3.5 w-3.5" /> Manage on Clerk
                 </Button>
-              </a>
+              </Link>
             </div>
           </div>
         </CardContent>

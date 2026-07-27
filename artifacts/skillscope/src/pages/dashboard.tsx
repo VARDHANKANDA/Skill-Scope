@@ -1,5 +1,6 @@
 import { useGetDashboardSummary, useGetActivityHeatmap, useGetMonthlyProgress } from '@workspace/api-client-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { Activity, Code2, FolderGit2, MessageSquare, Sparkles, Star, Target, Trophy, GitCommit } from 'lucide-react';
@@ -7,7 +8,7 @@ import ActivityHeatmap from '@/components/dashboard/activity-heatmap';
 import MonthlyProgressChart from '@/components/dashboard/monthly-progress';
 
 export default function DashboardPage() {
-  const { data: summary, isLoading: isLoadingSummary } = useGetDashboardSummary();
+  const { data: summary, isLoading: isLoadingSummary, error: summaryError, refetch: refetchSummary } = useGetDashboardSummary();
   const { data: heatmapData, isLoading: isLoadingHeatmap } = useGetActivityHeatmap();
   const { data: monthlyData, isLoading: isLoadingMonthly } = useGetMonthlyProgress();
 
@@ -26,6 +27,22 @@ export default function DashboardPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
           <Skeleton className="h-96 md:col-span-4 rounded-xl" />
           <Skeleton className="h-96 md:col-span-3 rounded-xl" />
+        </div>
+      </div>
+    );
+  }
+
+  if (summaryError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] p-6 text-center">
+        <div className="max-w-md space-y-4">
+          <h2 className="text-xl font-bold text-foreground">Failed to load dashboard</h2>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            {(summaryError as any)?.message || 'An unexpected error occurred while fetching your dashboard overview.'}
+          </p>
+          <Button onClick={() => refetchSummary()} className="w-full sm:w-auto px-6">
+            Retry Loading
+          </Button>
         </div>
       </div>
     );
