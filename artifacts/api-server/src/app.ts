@@ -64,4 +64,28 @@ app.use("/api", (req: Request, res: Response, next: NextFunction): void => {
 
 app.use("/api", router);
 
+// Global error handling middleware
+app.use((err: any, req: Request, res: Response, next: NextFunction): void => {
+  if (err) {
+    logger.error({
+      message: err.message,
+      code: err.code,
+      detail: err.detail,
+      hint: err.hint,
+      schema: err.schema,
+      table: err.table,
+      column: err.column,
+      constraint: err.constraint,
+      stack: err.stack,
+    }, "Unhandled API Error");
+  }
+  
+  if (res.headersSent) {
+    next(err);
+    return;
+  }
+
+  res.status(500).json({ error: err?.message || "Internal Server Error" });
+});
+
 export default app;

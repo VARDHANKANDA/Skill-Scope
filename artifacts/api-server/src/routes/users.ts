@@ -108,6 +108,10 @@ router.post("/users/me/sync", async (req, res): Promise<void> => {
       code: err.code,
       detail: err.detail,
       hint: err.hint,
+      schema: err.schema,
+      table: err.table,
+      column: err.column,
+      constraint: err.constraint,
       stack: err.stack,
     }, "PostgreSQL Query Failure inside /users/me/sync");
     throw err;
