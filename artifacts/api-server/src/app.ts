@@ -41,12 +41,31 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(
-  clerkMiddleware((req) => ({
-    publishableKey: publishableKeyFromHost(
-      getClerkProxyHost(req) ?? "",
-      process.env.CLERK_PUBLISHABLE_KEY,
-    ),
-  })),
+  clerkMiddleware((req) => {
+    const rawHost = getClerkProxyHost(req);
+    const host = rawHost?.split(":")[0]?.trim();
+
+    // Bypass custom-domain mapping for localhost, local IPs, and empty hosts.
+    // This avoids generating a localhost-mutated key in dev which fails JWKS verification.
+    if (
+      !host ||
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host === "0.0.0.0" ||
+      !host.includes(".")
+    ) {
+      return {
+        publishableKey: process.env.CLERK_PUBLISHABLE_KEY,
+      };
+    }
+
+    return {
+      publishableKey: publishableKeyFromHost(
+        rawHost ?? "",
+        process.env.CLERK_PUBLISHABLE_KEY,
+      ),
+    };
+  }),
 );
 
 // Global API rate limit: 1000 requests per 15 minutes per IP
