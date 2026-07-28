@@ -34,7 +34,18 @@ router.get("/resumes", requireAuth, async (req: AuthedRequest, res): Promise<voi
 router.post("/resumes", requireAuth, async (req: AuthedRequest, res): Promise<void> => {
   const parsed = CreateResumeBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const [resume] = await db.insert(resumesTable).values({ userId: req.dbUserId!, ...parsed.data, resumeScore: 0, atsScore: 0 }).returning();
+  
+  const { content, resumeScore, atsScore } = req.body as any;
+  
+  const [resume] = await db.insert(resumesTable).values({ 
+    userId: req.dbUserId!, 
+    title: parsed.data.title,
+    template: parsed.data.template,
+    content: content || null, 
+    resumeScore: typeof resumeScore === 'number' ? resumeScore : 0, 
+    atsScore: typeof atsScore === 'number' ? atsScore : 0 
+  }).returning();
+  
   res.status(201).json(CreateResumeResponse.parse(formatResume(resume)));
 });
 
@@ -84,7 +95,8 @@ router.post("/resumes/:id/generate", requireAuth, async (req: AuthedRequest, res
 
   const userId = req.dbUserId!;
 
-  if (!rateLimit(`generate:${userId}`, 5, 60 * 60 * 1000)) {
+  // Using a higher rate limit internally or standard bypass since standard generator has 5/hour
+  if (!rateLimit(`generate:${userId}`, 10, 60 * 60 * 1000)) {
     res.status(429).json({ error: "Too many generate requests. Try again in an hour." });
     return;
   }
@@ -93,6 +105,15 @@ router.post("/resumes/:id/generate", requireAuth, async (req: AuthedRequest, res
     and(eq(resumesTable.id, params.data.id), eq(resumesTable.userId, userId))
   );
   if (!resume) { res.status(404).json({ error: "Resume not found" }); return; }
+
+  // Check if we are doing optimization on existing content or generation from scratch
+  const existingContent = resume.content as any;
+  const hasExistingContent = existingContent && (
+    (existingContent.profile && existingContent.profile.name) ||
+    existingContent.summary ||
+    (existingContent.experience && existingContent.experience.length > 0) ||
+    (existingContent.projects && existingContent.projects.length > 0)
+  );
 
   // Gather user context
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
@@ -129,34 +150,103 @@ Resume template: ${resume.template}
   let resumeScore = 70;
   let atsScore = 75;
 
+  let systemPrompt = "";
+  let userPrompt = "";
+
+  if (hasExistingContent) {
+    const targetRole = existingContent.career?.targetRole || existingContent.profile?.targetRole || "Software Engineer";
+    systemPrompt = `You are an expert resume writer and ATS optimizer. Your goal is to review, professionally rewrite, and optimize the provided resume draft JSON.
+    
+1. Rewrite all professional summaries, work experience bullet points, and project descriptions.
+2. Use strong action verbs, improve grammar, improve readability, and convert responsibilities into measurable, quantified achievements (using metrics like %, $, ms where appropriate).
+3. Tailor the content for the target role: "${targetRole}". Make sure it is optimized for ATS parsing and recruiters.
+4. Remove repetitions. Make descriptions punchy and impactful.
+5. Identify missing keywords, weak descriptions, and suggest specific recommendations.
+6. Generate four scores: ATS compatibility (atsScore, 0-100), Completeness (completenessScore, 0-100), Keyword Match (keywordMatchScore, 0-100), and Content Quality (contentQualityScore, 0-100).
+7. Preserve the exact structure of the resume.
+
+Return ONLY a valid JSON object matching this structure:
+{
+  "profile": { "name": string, "email": string, "phone": string, "location": string, "linkedin": string, "github": string, "portfolio": string },
+  "career": { "currentRole": string, "yearsOfExperience": string, "targetRole": string, "summary": string, "objective": string },
+  "education": [{ "degree": string, "institution": string, "year": string, "gpa": string, "achievements": string[] }],
+  "skills": { 
+    "languages": string[], 
+    "frameworks": string[], 
+    "libraries": string[], 
+    "databases": string[], 
+    "cloud": string[], 
+    "devops": string[], 
+    "ai_ml": string[], 
+    "tools": string[], 
+    "other": string[] 
+  },
+  "projects": [{ "name": string, "description": string, "tech": string[], "link": string, "liveDemo": string, "highlights": string[] }],
+  "experience": [{ "company": string, "role": string, "duration": string, "points": string[], "achievements": string[], "techUsed": string[] }],
+  "certifications": [{ "name": string, "organization": string, "date": string }],
+  "achievements": string[],
+  "codingProfiles": { "github": string, "leetcode": string, "codeforces": string, "codechef": string, "hackerrank": string },
+  "analysis": {
+    "atsScore": number,
+    "completenessScore": number,
+    "keywordMatchScore": number,
+    "contentQualityScore": number,
+    "suggestions": [{ "category": string, "message": string }]
+  }
+}`;
+    userPrompt = `Here is the current resume draft JSON to optimize and analyze:\n\n${JSON.stringify(existingContent)}`;
+  } else {
+    systemPrompt = `You are an expert resume writer and ATS optimizer. Generate a professional, complete resume JSON from the developer's real profile data. Tailor it to the template type: "${resume.template}".
+    
+1. Rewrite professionally, using strong action verbs, and quantify achievements.
+2. Structure skills and projects clearly.
+3. Calculate scores (ATS compatibility, completeness, keyword match, and content quality).
+4. Suggest improvement recommendations.
+
+Return ONLY a valid JSON object matching this structure:
+{
+  "profile": { "name": string, "email": string, "phone": string, "location": string, "linkedin": string, "github": string, "portfolio": string },
+  "career": { "currentRole": string, "yearsOfExperience": string, "targetRole": string, "summary": string, "objective": string },
+  "education": [{ "degree": string, "institution": string, "year": string, "gpa": string, "achievements": string[] }],
+  "skills": { 
+    "languages": string[], 
+    "frameworks": string[], 
+    "libraries": string[], 
+    "databases": string[], 
+    "cloud": string[], 
+    "devops": string[], 
+    "ai_ml": string[], 
+    "tools": string[], 
+    "other": string[] 
+  },
+  "projects": [{ "name": string, "description": string, "tech": string[], "link": string, "liveDemo": string, "highlights": string[] }],
+  "experience": [{ "company": string, "role": string, "duration": string, "points": string[], "achievements": string[], "techUsed": string[] }],
+  "certifications": [{ "name": string, "organization": string, "date": string }],
+  "achievements": string[],
+  "codingProfiles": { "github": string, "leetcode": string, "codeforces": string, "codechef": string, "hackerrank": string },
+  "analysis": {
+    "atsScore": number,
+    "completenessScore": number,
+    "keywordMatchScore": number,
+    "contentQualityScore": number,
+    "suggestions": [{ "category": string, "message": string }]
+  }
+}`;
+    userPrompt = `Here is the developer's profile data to build the resume from:\n\n${context}`;
+  }
+
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30_000);
+    const timeout = setTimeout(() => controller.abort(), 25_000);
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       max_tokens: 2000,
       messages: [{
         role: "system",
-        content: `You are an expert resume writer for software engineers, specializing in ATS-optimized resumes for top tech companies (FAANG, unicorns, product companies).
-
-Generate a complete, professional resume JSON from the developer's real data. Be ATS-friendly, use strong action verbs, quantify achievements where possible, tailor to the ${resume.template} template.
-
-Return ONLY valid JSON with this structure:
-{
-  "profile": { "name": string, "email": string, "phone": string, "location": string, "linkedin": string, "github": string, "portfolio": string },
-  "summary": string,
-  "education": [{ "degree": string, "institution": string, "year": string, "gpa": string, "achievements": string[] }],
-  "skills": { "languages": string[], "frameworks": string[], "databases": string[], "tools": string[], "cloud": string[] },
-  "projects": [{ "name": string, "description": string, "tech": string[], "link": string, "highlights": string[] }],
-  "experience": [{ "company": string, "role": string, "duration": string, "points": string[] }],
-  "achievements": string[],
-  "certifications": string[],
-  "resumeScore": number,
-  "atsScore": number
-}`,
+        content: systemPrompt,
       }, {
         role: "user",
-        content: `Generate a resume for this developer:\n\n${context}`,
+        content: userPrompt,
       }],
       response_format: { type: "json_object" },
     }, { signal: controller.signal as AbortSignal });
@@ -164,28 +254,52 @@ Return ONLY valid JSON with this structure:
 
     const raw2 = completion.choices[0]?.message?.content ?? "{}";
     const parsed2 = JSON.parse(raw2);
-    resumeScore = Math.min(100, Math.max(0, parsed2.resumeScore ?? 78));
-    atsScore = Math.min(100, Math.max(0, parsed2.atsScore ?? 82));
-    const { resumeScore: _rs, atsScore: _as, ...contentOnly } = parsed2;
-    generatedContent = contentOnly;
-  } catch {
-    // Fallback: structured content from real profile data
+    
+    const analysisObj = parsed2.analysis ?? {};
+    resumeScore = Math.min(100, Math.max(0, analysisObj.completenessScore ?? parsed2.resumeScore ?? 78));
+    atsScore = Math.min(100, Math.max(0, analysisObj.atsScore ?? parsed2.atsScore ?? 82));
+    
+    parsed2.analysis = {
+      atsScore: atsScore,
+      completenessScore: resumeScore,
+      keywordMatchScore: Math.min(100, Math.max(0, analysisObj.keywordMatchScore ?? 75)),
+      contentQualityScore: Math.min(100, Math.max(0, analysisObj.contentQualityScore ?? 80)),
+      suggestions: analysisObj.suggestions ?? []
+    };
+
+    generatedContent = parsed2;
+  } catch (err) {
+    console.error("AI Generation failed:", err);
     const skillGroups = {
       languages: topSkills.filter(s => ["TypeScript", "JavaScript", "Python", "Java", "Go", "C++", "Rust", "Kotlin"].includes(s.name)).map(s => s.name),
       frameworks: topSkills.filter(s => ["React", "Node.js", "Express", "FastAPI", "Spring", "Django"].includes(s.name)).map(s => s.name),
+      libraries: [],
       databases: topSkills.filter(s => ["PostgreSQL", "MySQL", "MongoDB", "Redis"].includes(s.name)).map(s => s.name),
       tools: topSkills.filter(s => ["Docker", "Git", "Kubernetes", "Linux"].includes(s.name)).map(s => s.name),
       cloud: topSkills.filter(s => ["AWS", "GCP", "Azure"].includes(s.name)).map(s => s.name),
+      devops: [],
+      ai_ml: [],
+      other: []
     };
     generatedContent = {
       profile: { name: user?.name ?? "Developer", email: user?.email ?? "", phone: "", location: user?.location ?? "India", linkedin: "", github: github?.username ? `github.com/${github.username}` : "", portfolio: "" },
-      summary: `Software engineer with expertise in ${skillGroups.languages.slice(0, 3).join(", ")}. ${totalProblems > 0 ? `Solved ${totalProblems}+ competitive programming problems.` : ""}`.trim(),
+      career: { currentRole: user?.bio ? user.bio.slice(0, 50) : "", yearsOfExperience: "0", targetRole: "Software Engineer", summary: `Software engineer with expertise in ${skillGroups.languages.slice(0, 3).join(", ")}. ${totalProblems > 0 ? `Solved ${totalProblems}+ competitive programming problems.` : ""}`.trim(), objective: "To obtain a challenging software development position." },
       education: [{ degree: "B.Tech Computer Science", institution: user?.college ?? "Engineering College", year: String(user?.graduationYear ?? "2024"), gpa: "", achievements: [] }],
       skills: skillGroups,
-      projects: projects.slice(0, 4).map(p => ({ name: p.name, description: p.description ?? "", tech: (p.techStack as string[]) ?? [], link: p.htmlUrl ?? "", highlights: [] })),
+      projects: projects.slice(0, 4).map(p => ({ name: p.name, description: p.description ?? "", tech: (p.techStack as string[]) ?? [], link: p.htmlUrl ?? "", liveDemo: "", highlights: [] })),
       experience: [],
       achievements: totalProblems > 0 ? [`Solved ${totalProblems}+ problems across LeetCode, Codeforces and other platforms`] : [],
       certifications: [],
+      codingProfiles: { github: github?.username ?? "", leetcode: "", codeforces: "", codechef: "", hackerrank: "" },
+      analysis: {
+        atsScore: 70,
+        completenessScore: 75,
+        keywordMatchScore: 65,
+        contentQualityScore: 72,
+        suggestions: [
+          { category: "keywords", message: "Connect and complete details in the guided wizard to improve analysis." }
+        ]
+      }
     };
   }
 
